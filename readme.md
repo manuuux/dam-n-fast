@@ -24,7 +24,7 @@
 ## ⚡ API Endpoint Reference
 
 ### Get Batch Asset List
-`GET /api/assets/{username}/{cdn_name}`
+`GET /api/{username}/{cdn_name}`
 
 Returns the structured file tree and metadata for a specific user and asset batch.
 
