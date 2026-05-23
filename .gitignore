@@ -1,0 +1,16 @@
+# Herramientas de IA y editores
+.agents
+.claude
+.codex
+
+# Python (Ignora todas las carpetas pycache y archivos compilados)
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos temporales y logs
+*.log
+*.tmp
+
+# Carpeta específica de assets (Ignora la carpeta y todo su contenido)
+app/assets/

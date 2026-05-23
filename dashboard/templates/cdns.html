@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}CDNs{% endblock %}
+{% block content %}
+<section>
+    <h2>Mis CDNs</h2>
+    <form method="post" class="inline-form">
+        <input type="text" name="name" placeholder="Nombre CDN" required>
+        {% if user.role == 'admin' %}
+        <label><input type="checkbox" name="is_public"> Pública</label>
+        {% endif %}
+        <button type="submit">Crear</button>
+    </form>
+    <ul class="list">
+        {% for cdn in cdns %}
+        <li>
+            <span>{{ cdn.name }} ({{ 'Pública' if cdn.is_public else 'Privada' }})</span>
+            <a href="{{ url_for('cdn_detail', cdn_name=cdn.name) }}">Gestionar</a>
+            <form method="post" action="{{ url_for('delete_cdn', cdn_name=cdn.name) }}" class="inline-form">
+                <button type="submit">Eliminar CDN</button>
+            </form>
+        </li>
+        {% else %}
+        <li>No tienes CDNs creadas.</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}
