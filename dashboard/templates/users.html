@@ -34,6 +34,9 @@
                 <td>{{ u.role }}</td>
                 <td>{{ u.created_at }}</td>
                 <td>
+                    {% if u.username == root_admin_user %}
+                    <span>Bloqueado</span>
+                    {% else %}
                     <form method="post" action="{{ url_for('update_user', user_id=u.id) }}" class="inline-form">
                         <select name="role">
                             <option value="user" {% if u.role == 'user' %}selected{% endif %}>user</option>
@@ -41,12 +44,13 @@
                         </select>
                         <button type="submit">Guardar</button>
                     </form>
+                    {% endif %}
                 </td>
                 <td>
                     <button type="button" onclick="openPasswordModal('{{ u.id }}', '{{ u.username }}')">Cambiar contraseña</button>
                 </td>
                 <td>
-                    {% if u.username != 'admin' or user.username != 'admin' %}
+                    {% if u.username != root_admin_user %}
                     <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}">
                         <button type="submit">Eliminar</button>
                     </form>

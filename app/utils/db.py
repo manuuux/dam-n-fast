@@ -55,7 +55,7 @@ def db_cursor(dict_cursor: bool = False):
 
 def init_db():
     with db_cursor() as (_, cur):
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';")
+        cur.execute("SELECT pg_advisory_lock(918273645);")
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -67,6 +67,7 @@ def init_db():
             );
             """
         )
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';")
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS cdns (
@@ -77,6 +78,13 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(user_id, name)
             );
+            """
+        )
+        cur.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_public_cdn_name
+            ON cdns (name)
+            WHERE is_public = TRUE;
             """
         )
         cur.execute(
@@ -110,6 +118,7 @@ def init_db():
                 (ADMIN_USER, generate_password_hash(ADMIN_PASSWORD), "admin"),
             )
             logging.info("Default admin user created")
+        cur.execute("SELECT pg_advisory_unlock(918273645);")
 
 
 def generate_api_key() -> str:

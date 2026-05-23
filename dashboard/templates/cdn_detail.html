@@ -24,7 +24,13 @@
         <tbody>
             {% for item in files %}
             <tr>
-                <td><a href="{{ api_base_url }}/assets/{{ user.username }}/{{ cdn.name }}/{{ item.filename }}">{{ item.filename }}</td>
+                <td>
+                    {% if short_public %}
+                    <a href="{{ api_base_url }}/assets/{{ cdn.name }}/{{ item.filename }}">{{ item.filename }}</a>
+                    {% else %}
+                    <a href="{{ api_base_url }}/assets/{{ user.username }}/{{ cdn.name }}/{{ item.filename }}">{{ item.filename }}</a>
+                    {% endif %}
+                </td>
                 <td>{{ item.created_at }}</td>
                 <td><code>{{ item.checksum or '-' }}</code></td>
                 <td>

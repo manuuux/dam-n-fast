@@ -61,7 +61,7 @@ def db_cursor(dict_cursor: bool = False):
 
 def init_db():
     with db_cursor() as (_, cur):
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';")
+        cur.execute("SELECT pg_advisory_lock(918273645);")
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -73,6 +73,7 @@ def init_db():
             );
             """
         )
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';")
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS cdns (
@@ -83,6 +84,13 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(user_id, name)
             );
+            """
+        )
+        cur.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_public_cdn_name
+            ON cdns (name)
+            WHERE is_public = TRUE;
             """
         )
         cur.execute(
@@ -114,6 +122,7 @@ def init_db():
                 "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)",
                 (ADMIN_USER, generate_password_hash(ADMIN_PASSWORD), "admin"),
             )
+        cur.execute("SELECT pg_advisory_unlock(918273645);")
 
 
 def generate_api_key() -> str:
@@ -234,6 +243,11 @@ def cdns():
             return redirect(url_for("cdns"))
 
         with db_cursor() as (_, cur):
+            if is_public:
+                cur.execute("SELECT id FROM cdns WHERE name = %s AND is_public = TRUE", (name,))
+                if cur.fetchone():
+                    flash("El nombre de CDN pública ya existe. Debe ser único.", "error")
+                    return redirect(url_for("cdns"))
             cur.execute(
                 "INSERT INTO cdns (user_id, name, is_public) VALUES (%s, %s, %s) ON CONFLICT (user_id, name) DO NOTHING",
                 (user["id"], name, is_public),
@@ -264,7 +278,8 @@ def cdn_detail(cdn_name: str):
         api_keys = cur.fetchall()
 
     api_base_url = request.host_url.rstrip("/") + "/api"
-    return render_template("cdn_detail.html", user=user, cdn=cdn, files=files, api_keys=api_keys, api_base_url=api_base_url)
+    short_public = bool(cdn["is_public"])
+    return render_template("cdn_detail.html", user=user, cdn=cdn, files=files, api_keys=api_keys, api_base_url=api_base_url, short_public=short_public)
 
 
 @app.route("/users")
@@ -280,7 +295,7 @@ def users_admin():
     with db_cursor(dict_cursor=True) as (_, cur):
         cur.execute("SELECT id, username, role, created_at FROM users ORDER BY username")
         users = cur.fetchall()
-    return render_template("users.html", user=user, users=users)
+    return render_template("users.html", user=user, users=users, root_admin_user=ADMIN_USER)
 
 
 @app.route("/users/create", methods=["POST"])
@@ -325,7 +340,15 @@ def update_user(user_id: int):
     if role not in {"admin", "user"}:
         role = "user"
 
-    with db_cursor() as (_, cur):
+    with db_cursor(dict_cursor=True) as (_, cur):
+        cur.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+        target = cur.fetchone()
+        if not target:
+            flash("Usuario no encontrado.", "error")
+            return redirect(url_for("users_admin"))
+        if target["username"] == ADMIN_USER:
+            flash("No se puede cambiar el rol del usuario admin principal.", "error")
+            return redirect(url_for("users_admin"))
         cur.execute("UPDATE users SET role = %s WHERE id = %s", (role, user_id))
     flash("Usuario actualizado.", "success")
     return redirect(url_for("users_admin"))
@@ -367,6 +390,9 @@ def delete_user(user_id: int):
         target = cur.fetchone()
         if not target:
             flash("Usuario no encontrado.", "error")
+            return redirect(url_for("users_admin"))
+        if target["username"] == ADMIN_USER:
+            flash("No se puede eliminar el usuario admin principal.", "error")
             return redirect(url_for("users_admin"))
         if target["id"] == admin["id"]:
             flash("No puedes eliminar tu propio usuario.", "error")
