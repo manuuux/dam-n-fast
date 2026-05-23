@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SimpleAPI Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>damnfast</h1>
+            <nav>
+                <a href="{{ url_for('index') }}">Resumen</a>
+                <a href="{{ url_for('cdns') }}">CDNs</a>
+                {% if user.role == 'admin' %}<a href="{{ url_for('users_admin') }}">Usuarios</a>{% endif %}
+            </nav>
+            <div class="session-box">
+                <strong>{{ user.username }}</strong>
+                <span>Rol: {{ user.role }}</span>
+                <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+            </div>
+        </aside>
+        <main class="content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Resumen{% endblock %}
+{% block content %}
+<section>
+    <h2>Resumen</h2>
+    <div class="stats-grid">
+        <article class="card">
+            <h3>Total CDNs</h3>
+            <p>{{ total_cdns }}</p>
+        </article>
+        <article class="card">
+            <h3>Total Archivos</h3>
+            <p>{{ total_files }}</p>
+        </article>
+    </div>
+</section>
+{% endblock %}

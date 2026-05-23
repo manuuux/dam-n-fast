@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}CDNs{% endblock %}
+{% block content %}
+<section>
+    <h2>Mis CDNs</h2>
+    <form method="post" class="inline-form">
+        <input type="text" name="name" placeholder="Nombre CDN" required>
+        {% if user.role == 'admin' %}
+        <label><input type="checkbox" name="is_public"> Pública</label>
+        {% endif %}
+        <button type="submit">Crear</button>
+    </form>
+    <ul class="list">
+        {% for cdn in cdns %}
+        <li>
+            <a href="{{ url_for('cdn_detail', cdn_name=cdn.name) }}">
+                <span>{{ cdn.name }} ({{ 'Pública' if cdn.is_public else 'Privada' }})</span>
+            </a>
+            <button type="button" onclick="openDeleteCdnModal('{{ cdn.name }}')">Eliminar CDN</button>
+        </li>
+        {% else %}
+        <li>No tienes CDNs creadas.</li>
+        {% endfor %}
+    </ul>
+</section>
+
+<div id="deleteCdnModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+        <h3>Eliminar CDN</h3>
+        <p id="deleteCdnLabel"></p>
+        <p>Esta acción es irreversible y eliminará todos los archivos de la CDN.</p>
+        <form id="deleteCdnForm" method="post" class="inline-form" style="justify-content:flex-end;">
+            <button type="button" class="btn-secondary" onclick="closeDeleteCdnModal()">Cancelar</button>
+            <button type="submit">Eliminar</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openDeleteCdnModal(cdnName) {
+    const modal = document.getElementById('deleteCdnModal');
+    const form = document.getElementById('deleteCdnForm');
+    const label = document.getElementById('deleteCdnLabel');
+    form.action = `/cdns/${encodeURIComponent(cdnName)}/delete-cdn`;
+    label.textContent = `CDN: ${cdnName}`;
+    modal.style.display = 'flex';
+}
+
+function closeDeleteCdnModal() {
+    document.getElementById('deleteCdnModal').style.display = 'none';
+}
+</script>
+{% endblock %}

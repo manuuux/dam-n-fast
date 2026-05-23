@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Usuarios{% endblock %}
+{% block content %}
+<section>
+    <h2>Mantenedor de Usuarios</h2>
+
+    <h3>Crear usuario</h3>
+    <form method="post" action="{{ url_for('create_user') }}" class="inline-form">
+        <input type="text" name="username" placeholder="Usuario" required>
+        <input type="password" name="password" placeholder="Contraseña" required>
+        <select name="role">
+            <option value="user">user</option>
+            <option value="admin">admin</option>
+        </select>
+        <button type="submit">Crear</button>
+    </form>
+
+    <h3>Usuarios</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Creado</th>
+                <th>Actualizar</th>
+                <th>Contraseña</th>
+                <th>Eliminar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ u.role }}</td>
+                <td>{{ u.created_at }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('update_user', user_id=u.id) }}" class="inline-form">
+                        <select name="role">
+                            <option value="user" {% if u.role == 'user' %}selected{% endif %}>user</option>
+                            <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>admin</option>
+                        </select>
+                        <button type="submit">Guardar</button>
+                    </form>
+                </td>
+                <td>
+                    <button type="button" onclick="openPasswordModal('{{ u.id }}', '{{ u.username }}')">Cambiar contraseña</button>
+                </td>
+                <td>
+                    {% if u.username != 'admin' or user.username != 'admin' %}
+                    <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}">
+                        <button type="submit">Eliminar</button>
+                    </form>
+                    {% else %}
+                    <span>-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">Sin usuarios.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<div id="passwordModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+        <h3>Cambiar contraseña</h3>
+        <p id="modalUserLabel"></p>
+        <form id="passwordForm" method="post" class="inline-form" style="flex-direction:column; align-items:stretch;">
+            <input type="password" name="password" placeholder="Nueva contraseña" required>
+            <div class="inline-form" style="justify-content:flex-end;">
+                <button type="button" class="btn-secondary" onclick="closePasswordModal()">Cancelar</button>
+                <button type="submit">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openPasswordModal(userId, username) {
+    const modal = document.getElementById('passwordModal');
+    const form = document.getElementById('passwordForm');
+    const label = document.getElementById('modalUserLabel');
+    form.action = `/users/${userId}/password`;
+    label.textContent = `Usuario: ${username}`;
+    modal.style.display = 'flex';
+}
+
+function closePasswordModal() {
+    document.getElementById('passwordModal').style.display = 'none';
+}
+</script>
+{% endblock %}
