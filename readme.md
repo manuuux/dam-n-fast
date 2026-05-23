@@ -25,6 +25,7 @@
 
 ### Get Batch Asset List
 `GET /api/{username}/{cdn_name}`
+`GET /api/{public_cdn_name}`
 
 Returns the structured file tree and metadata for a specific user and asset batch.
 
@@ -39,14 +40,14 @@ X-API-Key: your_batch_api_key_here
 {
   "username": "admin",
   "cdn": "nasa",
-  "archivos": [
+  "files": [
     {
-      "nombre": "15472490_1280_720_30fps.mp4",
+      "name": "15472490_1280_720_30fps.mp4",
       "checksum": "c8eb600bd7b295a80003cbba4bcd70e5",
       "url": "http://IP:9005/api/admin/nasa/15472490_1280_720_30fps.mp4)"
     },
     {
-      "nombre": "4mjxogx6F0s.jpg",
+      "name": "4mjxogx6F0s.jpg",
       "checksum": "108fc763cdc0b1c7786ffb523efb3319",
       "url": "http://IP:9005/api/admin/nasa/4mjxogx6F0s.jpg"
     }
