@@ -2,22 +2,31 @@
 {% block title %}CDNs{% endblock %}
 {% block content %}
 <section>
-    <h2>Mis CDNs</h2>
-    <form method="post" class="inline-form">
-        <input type="text" name="name" placeholder="Nombre CDN" required>
-        {% if user.role == 'admin' %}
-        <label><input type="checkbox" name="is_public"> Pública</label>
-        {% endif %}
-        <button type="submit">Crear</button>
-    </form>
+    <div class="section-title">
+        <h2>Mis CDNs</h2>
+        <button type="button" onclick="openCreateCdnModal()">
+            <img src="{{ url_for('static', filename='img/icons/hugeicons--folder-add.svg') }}" alt="Crear CDN"
+                class="svg">
+        </button>
+    </div>
+
     <ul class="list">
         {% for cdn in cdns %}
-        <li>
-            <a href="{{ url_for('cdn_detail', cdn_name=cdn.name) }}">
-                <span>{{ cdn.name }} ({{ 'Pública' if cdn.is_public else 'Privada' }})</span>
-            </a>
-            <button type="button" onclick="openDeleteCdnModal('{{ cdn.name }}')">Eliminar CDN</button>
-        </li>
+            <li class="cdn-item">
+                <a href="{{ url_for('cdn_detail', cdn_name=cdn.name) }}" class="cdn-link">
+                    <img src="{{ url_for('static', filename='img/icons/hugeicons--folder-01.svg') }}" alt="CDN"
+                        class="svg cdn-icon">
+                    <div class="cdn-info">
+                        <span>{{ cdn.name }}</span>
+                        <small>{{ 'Pública' if cdn.is_public else 'Privada' }}</small>
+                    </div>
+                        
+                </a>
+                <button type="button" onclick="openDeleteCdnModal('{{ cdn.name }}')" class="delete-button">
+                    <img src="{{ url_for('static', filename='img/icons/hugeicons--folder-remove.svg') }}" alt="Eliminar CDN"
+                        class="svg">
+                </button>
+            </li>
         {% else %}
         <li>No tienes CDNs creadas.</li>
         {% endfor %}
@@ -36,18 +45,44 @@
     </div>
 </div>
 
-<script>
-function openDeleteCdnModal(cdnName) {
-    const modal = document.getElementById('deleteCdnModal');
-    const form = document.getElementById('deleteCdnForm');
-    const label = document.getElementById('deleteCdnLabel');
-    form.action = `/cdns/${encodeURIComponent(cdnName)}/delete-cdn`;
-    label.textContent = `CDN: ${cdnName}`;
-    modal.style.display = 'flex';
-}
+<div id="createCdnModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+        <h3>Crear CDN</h3>
+        <form method="post" class="modal-form">
+            <input type="text" name="name" placeholder="Nombre CDN" required>
+            {% if user.role == 'admin' %}
+            <label class="form-check"><input type="checkbox" name="is_public"> Pública</label>
+            {% endif %}
+            <div class="footer">
+                <button type="button" class="btn-secondary" onclick="closeCreateCdnModal()">Cancelar</button>
+                <button type="submit">Crear</button>
+            </div>
+            
+        </form>
+    </div>
+</div>
 
-function closeDeleteCdnModal() {
-    document.getElementById('deleteCdnModal').style.display = 'none';
-}
+<script>
+    function openDeleteCdnModal(cdnName) {
+        const modal = document.getElementById('deleteCdnModal');
+        const form = document.getElementById('deleteCdnForm');
+        const label = document.getElementById('deleteCdnLabel');
+        form.action = `/cdns/${encodeURIComponent(cdnName)}/delete-cdn`;
+        label.textContent = `CDN: ${cdnName}`;
+        modal.style.display = 'flex';
+    }
+
+    function closeDeleteCdnModal() {
+        document.getElementById('deleteCdnModal').style.display = 'none';
+    }
+
+    function openCreateCdnModal() {
+        const modal = document.getElementById('createCdnModal');
+        modal.style.display = 'flex';
+    }
+
+    function closeCreateCdnModal() {
+        document.getElementById('createCdnModal').style.display = 'none';
+    }
 </script>
 {% endblock %}

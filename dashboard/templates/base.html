@@ -4,28 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SimpleAPI Dashboard{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/icon.png') }}" type="image/x-icon">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="layout">
         <aside class="sidebar">
-            <h1>damnfast</h1>
+            <img src="{{ url_for('static', filename='img/icon.png') }}" alt="DAM N FAST" class="logo">
             <nav>
-                <a href="{{ url_for('index') }}">Resumen</a>
-                <a href="{{ url_for('cdns') }}">CDNs</a>
-                {% if user.role == 'admin' %}<a href="{{ url_for('users_admin') }}">Usuarios</a>{% endif %}
+                <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='img/icons/hugeicons--home-09.svg') }}" alt="Resumen" class="svg menu-normal"></a>
+                <a href="{{ url_for('cdns') }}"><img src="{{ url_for('static', filename='img/icons/hugeicons--folders.svg') }}" alt="CDNs" class="svg menu-normal"></a>
+                {% if user.role == 'admin' %}<a href="{{ url_for('users_admin') }}"><img src="{{ url_for('static', filename='img/icons/hugeicons--book-user.svg') }}" alt="Usuarios" class="svg menu-normal"></a>{% endif %}
             </nav>
             <div class="session-box">
-                <strong>{{ user.username }}</strong>
-                <span>Rol: {{ user.role }}</span>
-                <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+                <div class="tooltip">
+                    <img src="{{ url_for('static', filename='img/icons/hugeicons--user-account.svg') }}" alt="Resumen" class="svg menu-mini">
+                    <span class="tooltiptext"><strong>{{ user.username }}</strong>: {{ user.role }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}"><img src="{{ url_for('static', filename='img/icons/hugeicons--door-02.svg') }}" alt="CDNs" class="svg menu-normal"></a>
             </div>
         </aside>
         <main class="content">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert {{ category }}">{{ message }}</div>
+                        <div class="alert {{ category }}" id="notificacion">{{ message }}</div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
@@ -33,4 +36,12 @@
         </main>
     </div>
 </body>
+<script>
+    const element = document.getElementById('notificacion');
+    if (element) {
+        setTimeout(() => {
+            element.style.display = 'none';
+        }, 5000);
+    }
+</script>
 </html>

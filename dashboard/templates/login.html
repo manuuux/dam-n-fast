@@ -4,18 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/icon.png') }}" type="image/x-icon">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="login-page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div><br>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     <div class="login-card">
-        <h1>Dashboard SimpleAPI</h1>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert {{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        <img src="{{ url_for('static', filename='img/damnfast.png') }}" alt="DAM N FAST" class="login-logo">
+        
         <form method="post" class="inline-form" style="flex-direction: column; align-items: stretch;">
             <input type="text" name="username" placeholder="Usuario" required>
             <input type="password" name="password" placeholder="Contraseña" required>
@@ -23,4 +25,12 @@
         </form>
     </div>
 </body>
+<script>
+    const element = document.getElementById('notificacion');
+    if (element) {
+        setTimeout(() => {
+            element.style.display = 'none';
+        }, 5000);
+    }
+</script>
 </html>

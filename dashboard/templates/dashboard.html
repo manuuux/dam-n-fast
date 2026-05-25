@@ -4,13 +4,19 @@
 <section>
     <h2>Resumen</h2>
     <div class="stats-grid">
-        <article class="card">
-            <h3>Total CDNs</h3>
-            <p>{{ total_cdns }}</p>
+        <article class="card dashboard-card">
+            <img src="{{ url_for('static', filename='img/icons/hugeicons--folders.svg') }}" alt="CDNs" class="svg card-icon">
+            <div>
+                <h3>Total CDNs</h3>
+                <p>{{ total_cdns }}</p>
+            </div>
         </article>
-        <article class="card">
-            <h3>Total Archivos</h3>
-            <p>{{ total_files }}</p>
+        <article class="card dashboard-card">
+            <img src="{{ url_for('static', filename='img/icons/hugeicons--files-02.svg') }}" alt="Archivos" class="svg card-icon">
+            <div>
+                <h3>Total Archivos</h3>
+                <p>{{ total_files }}</p>
+            </div>
         </article>
     </div>
 </section>

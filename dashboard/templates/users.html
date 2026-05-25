@@ -2,60 +2,48 @@
 {% block title %}Usuarios{% endblock %}
 {% block content %}
 <section>
-    <h2>Mantenedor de Usuarios</h2>
-
-    <h3>Crear usuario</h3>
-    <form method="post" action="{{ url_for('create_user') }}" class="inline-form">
-        <input type="text" name="username" placeholder="Usuario" required>
-        <input type="password" name="password" placeholder="Contraseña" required>
-        <select name="role">
-            <option value="user">user</option>
-            <option value="admin">admin</option>
-        </select>
-        <button type="submit">Crear</button>
-    </form>
-
-    <h3>Usuarios</h3>
+    <div class="section-title">
+        <h2>Mantenedor de Usuarios</h2>
+        <button type="button" onclick="openCreateUserModal()">
+            <img src="{{ url_for('static', filename='img/icons/hugeicons--user-add-01.svg') }}" alt="Crear CDN"
+                class="svg">
+        </button>
+    </div>
     <table class="table">
         <thead>
             <tr>
                 <th>Usuario</th>
+                <th class="dnr">Creado</th>
                 <th>Rol</th>
-                <th>Creado</th>
-                <th>Actualizar</th>
-                <th>Contraseña</th>
-                <th>Eliminar</th>
+                <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
             {% for u in users %}
             <tr>
                 <td>{{ u.username }}</td>
-                <td>{{ u.role }}</td>
-                <td>{{ u.created_at }}</td>
+                <td class="dnr">{{ u.created_at }}</td>
                 <td>
                     {% if u.username == root_admin_user %}
-                    <span>Bloqueado</span>
+                    <span>Superadmin</span>
                     {% else %}
                     <form method="post" action="{{ url_for('update_user', user_id=u.id) }}" class="inline-form">
-                        <select name="role">
+                        <select name="role" onchange="this.form.submit()">
                             <option value="user" {% if u.role == 'user' %}selected{% endif %}>user</option>
                             <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>admin</option>
                         </select>
-                        <button type="submit">Guardar</button>
                     </form>
                     {% endif %}
                 </td>
-                <td>
-                    <button type="button" onclick="openPasswordModal('{{ u.id }}', '{{ u.username }}')">Cambiar contraseña</button>
-                </td>
-                <td>
+                <td class="actions">
+                    <button type="button" onclick="openPasswordModal('{{ u.id }}', '{{ u.username }}')"><img src="{{ url_for('static', filename='img/icons/hugeicons--lock-password.svg') }}" alt="Cambiar contraseña" class="svg"></button>
+                
                     {% if u.username != root_admin_user %}
                     <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}">
-                        <button type="submit">Eliminar</button>
+                        <button type="submit"><img src="{{ url_for('static', filename='img/icons/hugeicons--user-remove-01.svg') }}" alt="Eliminar" class="svg"></button>
                     </form>
                     {% else %}
-                    <span>-</span>
+                    <span></span>
                     {% endif %}
                 </td>
             </tr>
@@ -80,6 +68,26 @@
     </div>
 </div>
 
+<div id="userCreationModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+        <h3>Crear nuevo usuario</h3>
+        <form method="post" action="{{ url_for('create_user') }}" class="inline-form">
+            <input type="text" name="username" placeholder="Usuario" required>
+            <input type="password" name="password" placeholder="Contraseña" required>
+            <select name="role">
+                <option value="user">user</option>
+                <option value="admin">admin</option>
+            </select>
+
+            <div class="footer">
+                <button type="button" class="btn-secondary" onclick="closeCreateUserModal()">Cancelar</button>
+                <button type="submit">Crear</button>
+            </div>
+    </form>
+    </div>
+
+</div>
+
 <script>
 function openPasswordModal(userId, username) {
     const modal = document.getElementById('passwordModal');
@@ -93,5 +101,13 @@ function openPasswordModal(userId, username) {
 function closePasswordModal() {
     document.getElementById('passwordModal').style.display = 'none';
 }
+function openCreateUserModal() {
+    const modal = document.getElementById('userCreationModal');
+    modal.style.display = 'flex';
+}
+function closeCreateUserModal() {
+    document.getElementById('userCreationModal').style.display = 'none';
+}
+
 </script>
 {% endblock %}

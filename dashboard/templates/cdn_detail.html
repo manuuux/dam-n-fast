@@ -2,22 +2,27 @@
 {% block title %}CDN {{ cdn.name }}{% endblock %}
 {% block content %}
 <section>
-    <h2>CDN: {{ cdn.name }}</h2>
-    <p>Tipo: {{ 'Pública' if cdn.is_public else 'Privada' }}</p>
+    <div class="section-title">
+        <h2>CDN: {{ cdn.name }} <small>{{ 'Pública' if cdn.is_public else 'Privada' }}</small></h2>
+        <div class="actions">
+            <button type="button" onclick="openUploadModal()">
+                <img src="{{ url_for('static', filename='img/icons/hugeicons--file-upload.svg') }}" alt="Subir Archivo"
+                    class="svg">
+            </button>
+            {% if not cdn.is_public %}
+            <button type="button" onclick="openAPISModal()">
+                <img src="{{ url_for('static', filename='img/icons/hugeicons--key-01.svg') }}" alt="API Keys"
+                    class="svg">
+            </button>
+            {% endif %}
+        </div>
+    </div>
 
-    <h3>Subir Archivo</h3>
-    <form method="post" action="{{ url_for('upload_file', cdn_name=cdn.name) }}" enctype="multipart/form-data" class="inline-form">
-        <input type="file" name="file" required>
-        <button type="submit">Subir</button>
-    </form>
-
-    <h3>Archivos</h3>
     <table class="table">
         <thead>
             <tr>
                 <th>Nombre</th>
-                <th>Fecha de subida</th>
-                <th>Checksum</th>
+                <th class="dnr">Fecha de subida</th>
                 <th>Acción</th>
             </tr>
         </thead>
@@ -31,12 +36,11 @@
                     <a href="{{ api_base_url }}/assets/{{ user.username }}/{{ cdn.name }}/{{ item.filename }}">{{ item.filename }}</a>
                     {% endif %}
                 </td>
-                <td>{{ item.created_at }}</td>
-                <td><code>{{ item.checksum or '-' }}</code></td>
+                <td class="dnr">{{ item.created_at }}</td>
                 <td>
                     <form method="post" action="{{ url_for('delete_file', cdn_name=cdn.name) }}" class="inline-form">
                         <input type="hidden" name="filename" value="{{ item.filename }}">
-                        <button type="submit">Eliminar</button>
+                        <button type="submit"><img src="{{ url_for('static', filename='img/icons/hugeicons--file-remove.svg') }}" alt="Eliminar" class="svg"></button>
                     </form>
                 </td>
             </tr>
@@ -46,22 +50,63 @@
         </tbody>
     </table>
 
-    <h3>API Keys</h3>
-    <form method="post" action="{{ url_for('create_api_key', cdn_name=cdn.name) }}">
-        <button type="submit">Generar API Key</button>
-    </form>
-    <ul class="list">
-        {% for key in api_keys %}
-        <li>
-            <code>{{ key.key_value }}</code>
-            <form method="post" action="{{ url_for('delete_api_key', cdn_name=cdn.name) }}" class="inline-form">
-                <input type="hidden" name="key_id" value="{{ key.id }}">
-                <button type="submit">Eliminar</button>
-            </form>
-        </li>
-        {% else %}
-        <li>Sin API Keys.</li>
-        {% endfor %}
-    </ul>
+    
 </section>
+<div id="uploadModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+        <h3>Subir Archivo</h3>
+        <form method="post" action="{{ url_for('upload_file', cdn_name=cdn.name) }}" enctype="multipart/form-data" class="modal-form">
+            <input type="file" name="file" required>
+            
+        
+        <div class="footer">
+            <button type="submit">Subir</button>
+            <button type="button" class="btn-secondary" onclick="closeUploadModal()">Cerrar</button>
+        </div>
+    </form>
+    </div>
+</div>
+
+<div id="APISModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+        <div class="section-title">
+            <h3>API Keys</h3>
+            <form method="post" action="{{ url_for('create_api_key', cdn_name=cdn.name) }}">
+                <button type="submit"><img src="{{ url_for('static', filename='img/icons/hugeicons--circle-lock-add-01.svg') }}" alt="Generar API Key" class="svg"></button>
+            </form>
+        </div>
+        
+        <ul class="list">
+            {% for key in api_keys %}
+            <li class="api-item">
+                <code>{{ key.key_value }}</code>
+                <form method="post" action="{{ url_for('delete_api_key', cdn_name=cdn.name) }}" >
+                    <input type="hidden" name="key_id" value="{{ key.id }}">
+                    <button type="submit" class="delete-button"><img src="{{ url_for('static', filename='img/icons/hugeicons--delete-01.svg') }}" alt="Eliminar API Key" class="svg"></button>
+                </form>
+            </li>
+            {% else %}
+            <li>Sin API Keys.</li>
+            {% endfor %}
+        </ul>
+        <div class="modal-form footer">
+            <button type="button" class="btn-secondary" onclick="closeAPISModal()">Cerrar</button>
+        </div>
+    </div>
+    
+</div>
+<script>
+    function openAPISModal() {
+        document.getElementById('APISModal').style.display = 'flex';
+    }
+    function closeAPISModal() {
+        document.getElementById('APISModal').style.display = 'none';
+    }
+    function openUploadModal() {
+        document.getElementById('uploadModal').style.display = 'flex';
+    }
+    function closeUploadModal() {
+        document.getElementById('uploadModal').style.display = 'none';
+    }
+</script>
 {% endblock %}

@@ -51,6 +51,7 @@ services:
       - damnfast-db
     volumes:
       - ./app/assets:/app/app/assets
+      - ./dashboard:/app
     networks:
       - cloudflare_net
 
