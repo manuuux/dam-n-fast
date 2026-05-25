@@ -1,4 +1,6 @@
+
 # ⚡ DAM N Fast
+![DAM N Fast](https://github.com/manuuux/dam-n-fast/blob/main/damnfast.png?raw=true)
 
 > **DAM N Fast** is a self-hosted, ultra-lightweight MicroCDN and Headless Asset Manager built on Python. It provides localized asset organization and high-speed file delivery for private applications.
 
@@ -16,8 +18,7 @@
 
 ## 🖼️ Preview
 
-<!-- PLACEHOLDER: Add your dashboard screenshot here -->
-![DAM N Fast Dashboard](https://via.placeholder.com/800x400?text=DAM+N+Fast+Dashboard+Screenshot)
+![DAM N Fast Dashboard](https://raw.githubusercontent.com/manuuux/dam-n-fast/refs/heads/main/dashboard.png)
 
 ---
 
