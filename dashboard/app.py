@@ -7,6 +7,7 @@ from pathlib import Path
 
 import psycopg2
 from flask import Flask, flash, redirect, render_template, request, session, url_for
+from PIL import Image, UnidentifiedImageError
 from psycopg2.extras import RealDictCursor
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -110,12 +111,16 @@ def init_db():
                 cdn_id INTEGER NOT NULL REFERENCES cdns(id) ON DELETE CASCADE,
                 filename VARCHAR(255) NOT NULL,
                 checksum VARCHAR(64),
+                original_width INTEGER,
+                original_height INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(cdn_id, filename)
             );
             """
         )
         cur.execute("ALTER TABLE cdn_files ADD COLUMN IF NOT EXISTS checksum VARCHAR(64);")
+        cur.execute("ALTER TABLE cdn_files ADD COLUMN IF NOT EXISTS original_width INTEGER;")
+        cur.execute("ALTER TABLE cdn_files ADD COLUMN IF NOT EXISTS original_height INTEGER;")
         cur.execute("SELECT id FROM users WHERE username = %s", (ADMIN_USER,))
         if not cur.fetchone():
             cur.execute(
@@ -272,7 +277,10 @@ def cdn_detail(cdn_name: str):
         return redirect(url_for("cdns"))
 
     with db_cursor(dict_cursor=True) as (_, cur):
-        cur.execute("SELECT filename, checksum, created_at FROM cdn_files WHERE cdn_id = %s ORDER BY filename", (cdn["id"],))
+        cur.execute(
+            "SELECT filename, checksum, original_width, original_height, created_at FROM cdn_files WHERE cdn_id = %s ORDER BY filename",
+            (cdn["id"],),
+        )
         files = cur.fetchall()
         cur.execute("SELECT id, key_value, created_at FROM api_keys WHERE cdn_id = %s ORDER BY id DESC", (cdn["id"],))
         api_keys = cur.fetchall()
@@ -416,33 +424,55 @@ def upload_file(cdn_name: str):
         flash("CDN no encontrada.", "error")
         return redirect(url_for("cdns"))
 
-    file = request.files.get("file")
-    if not file or not file.filename:
-        flash("Debe seleccionar un archivo.", "error")
-        return redirect(url_for("cdn_detail", cdn_name=cdn_name))
-
-    filename = secure_filename(file.filename)
-    if not filename:
-        flash("Nombre de archivo inválido.", "error")
+    files = request.files.getlist("files")
+    valid_files = [f for f in files if f and f.filename]
+    if not valid_files:
+        flash("Debe seleccionar al menos un archivo.", "error")
         return redirect(url_for("cdn_detail", cdn_name=cdn_name))
 
     folder = ASSETS_BASE_DIR / user["username"] / cdn_name
     folder.mkdir(parents=True, exist_ok=True)
-    file_path = folder / filename
-    file.save(file_path)
-    checksum = md5(file_path.read_bytes()).hexdigest()
+    uploaded_count = 0
+    invalid_count = 0
 
     with db_cursor() as (_, cur):
-        cur.execute(
-            """
-            INSERT INTO cdn_files (cdn_id, filename, checksum)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (cdn_id, filename) DO UPDATE SET checksum = EXCLUDED.checksum
-            """,
-            (cdn["id"], filename, checksum),
-        )
+        for file in valid_files:
+            filename = secure_filename(file.filename)
+            if not filename:
+                invalid_count += 1
+                continue
 
-    flash("Archivo subido correctamente.", "success")
+            file_path = folder / filename
+            file.save(file_path)
+            checksum = md5(file_path.read_bytes()).hexdigest()
+            original_width = None
+            original_height = None
+            try:
+                with Image.open(file_path) as img:
+                    original_width, original_height = img.size
+            except (UnidentifiedImageError, OSError):
+                pass
+
+            cur.execute(
+                """
+                INSERT INTO cdn_files (cdn_id, filename, checksum, original_width, original_height)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (cdn_id, filename)
+                DO UPDATE SET
+                    checksum = EXCLUDED.checksum,
+                    original_width = EXCLUDED.original_width,
+                    original_height = EXCLUDED.original_height
+                """,
+                (cdn["id"], filename, checksum, original_width, original_height),
+            )
+            uploaded_count += 1
+
+    if uploaded_count:
+        flash(f"Se subieron {uploaded_count} archivo(s) correctamente.", "success")
+    if invalid_count:
+        flash(f"Se omitieron {invalid_count} archivo(s) con nombre inválido.", "error")
+    if not uploaded_count and not invalid_count:
+        flash("No se subió ningún archivo.", "error")
     return redirect(url_for("cdn_detail", cdn_name=cdn_name))
 
 

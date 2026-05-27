@@ -104,12 +104,16 @@ def init_db():
                 cdn_id INTEGER NOT NULL REFERENCES cdns(id) ON DELETE CASCADE,
                 filename VARCHAR(255) NOT NULL,
                 checksum VARCHAR(64),
+                original_width INTEGER,
+                original_height INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(cdn_id, filename)
             );
             """
         )
         cur.execute("ALTER TABLE cdn_files ADD COLUMN IF NOT EXISTS checksum VARCHAR(64);")
+        cur.execute("ALTER TABLE cdn_files ADD COLUMN IF NOT EXISTS original_width INTEGER;")
+        cur.execute("ALTER TABLE cdn_files ADD COLUMN IF NOT EXISTS original_height INTEGER;")
         cur.execute("SELECT id FROM users WHERE username = %s", (ADMIN_USER,))
         admin = cur.fetchone()
         if not admin:

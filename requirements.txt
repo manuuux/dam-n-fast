@@ -3,3 +3,8 @@ uvicorn[standard]
 python-multipart
 psycopg2-binary
 Werkzeug
+Pillow
+markdown
+pymdown-extensions
+Pygments
+PyYAML
