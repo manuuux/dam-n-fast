@@ -1,6 +1,10 @@
 import io
+import json
 import markdown as md
 import yaml
+from pathlib import Path
+from html import escape
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse
@@ -12,6 +16,33 @@ from app.config import ASSETS_DIR
 from app.utils.db import db_cursor
 
 router = APIRouter()
+
+@router.get("/slide/{username}/{cdn_name}", response_class=HTMLResponse)
+@router.get("/slide/{username}/{cdn_name}/", response_class=HTMLResponse)
+def cdn_slideshow(
+    request: Request,
+    username: str,
+    cdn_name: str,
+    x_cdn_api_key: str | None = Header(default=None),
+    apikey: str | None = Query(default=None),
+):
+    cdn = _get_cdn(username, cdn_name)
+    if not cdn:
+        raise HTTPException(status_code=404, detail="CDN no encontrada")
+    provided_key = apikey or x_cdn_api_key
+    _assert_access(cdn, provided_key)
+    return _build_slideshow_response(request, cdn["id"], username, cdn_name, provided_key)
+
+
+@router.get("/slide/{cdn_name}", response_class=HTMLResponse)
+@router.get("/slide/{cdn_name}/", response_class=HTMLResponse)
+def public_cdn_slideshow(request: Request, cdn_name: str):
+    cdn = _get_public_cdn(cdn_name)
+    if not cdn:
+        raise HTTPException(status_code=404, detail="CDN no encontrada")
+    return _build_slideshow_response(request, cdn["id"], cdn["username"], cdn_name, short_public=True)
+
+
 
 _MARKDOWN_CSS_TEMPLATES = {
     "default": """
@@ -265,25 +296,27 @@ def _serve_cdn_root_content(username: str, cdn_name: str):
     return None
 
 
-def _serve_cdn_markdown_file(username: str, cdn_name: str, cdn_id: int, markdown_filename: str):
-    if not markdown_filename.lower().endswith(".md"):
-        raise HTTPException(status_code=400, detail="Solo se permiten archivos markdown")
+def _serve_cdn_requested_file(username: str, cdn_name: str, cdn_id: int, requested_filename: str):
+    if not requested_filename:
+        raise HTTPException(status_code=400, detail="Archivo requerido")
 
     with db_cursor(dict_cursor=True) as (_, cur):
         cur.execute(
             "SELECT id FROM cdn_files WHERE cdn_id = %s AND filename = %s",
-            (cdn_id, markdown_filename),
+            (cdn_id, requested_filename),
         )
         exists = cur.fetchone()
 
     if not exists:
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
 
-    file_path = _safe_file_in_cdn(username, cdn_name, markdown_filename)
+    file_path = _safe_file_in_cdn(username, cdn_name, requested_filename)
     if not file_path:
         raise HTTPException(status_code=404, detail="Archivo no encontrado en disco")
 
-    return HTMLResponse(content=_markdown_to_html(file_path.read_text(encoding="utf-8")), status_code=200)
+    if requested_filename.lower().endswith(".md"):
+        return HTMLResponse(content=_markdown_to_html(file_path.read_text(encoding="utf-8")), status_code=200)
+    return FileResponse(path=str(file_path))
 
 
 @router.get("/{username}/{cdn_name}/json")
@@ -316,7 +349,7 @@ def list_cdn_files(
     cdn_name: str,
     x_cdn_api_key: str | None = Header(default=None),
     apikey: str | None = Query(default=None),
-    md: str | None = Query(default=None),
+    file: str | None = Query(default=None),
 ):
     cdn = _get_cdn(username, cdn_name)
     if not cdn:
@@ -324,8 +357,8 @@ def list_cdn_files(
 
     _assert_access(cdn, apikey or x_cdn_api_key)
 
-    if md:
-        return _serve_cdn_markdown_file(username, cdn_name, cdn["id"], md)
+    if file:
+        return _serve_cdn_requested_file(username, cdn_name, cdn["id"], file)
 
     content = _serve_cdn_root_content(username, cdn_name)
     if content is not None:
@@ -338,14 +371,14 @@ def list_cdn_files(
 def list_public_admin_cdn_files(
     request: Request,
     cdn_name: str,
-    md: str | None = Query(default=None),
+    file: str | None = Query(default=None),
 ):
     cdn = _get_public_cdn(cdn_name)
     if not cdn:
         raise HTTPException(status_code=404, detail="CDN no encontrada")
 
-    if md:
-        return _serve_cdn_markdown_file(cdn["username"], cdn_name, cdn["id"], md)
+    if file:
+        return _serve_cdn_requested_file(cdn["username"], cdn_name, cdn["id"], file)
 
     content = _serve_cdn_root_content(cdn["username"], cdn_name)
     if content is not None:
@@ -354,8 +387,85 @@ def list_public_admin_cdn_files(
     return _build_listing_response(request, cdn["id"], cdn["username"], cdn_name, True)
 
 
+
+def _build_slideshow_response(
+    request: Request,
+    cdn_id: int,
+    username: str,
+    cdn_name: str,
+    api_key: str | None = None,
+    short_public: bool = False,
+):
+    image_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tif", ".tiff", ".avif"}
+    video_extensions = {".mp4", ".webm", ".ogg", ".ogv", ".mov", ".m4v", ".avi"}
+    media_extensions = image_extensions | video_extensions
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    scheme = forwarded_proto if forwarded_proto in {"http", "https"} else request.url.scheme
+    base_url = f"{scheme}://{request.url.netloc}/api"
+
+    with db_cursor(dict_cursor=True) as (_, cur):
+        cur.execute(
+            "SELECT filename FROM cdn_files WHERE cdn_id = %s ORDER BY filename",
+            (cdn_id,),
+        )
+        rows = cur.fetchall()
+
+    slides = []
+    for row in rows:
+        filename = row["filename"]
+        extension = Path(filename).suffix.lower()
+        if extension not in media_extensions:
+            continue
+        file_path = _safe_file_in_cdn(username, cdn_name, filename)
+        if not file_path:
+            continue
+        if short_public:
+            asset_url = f"{base_url}/assets/{cdn_name}/{filename}"
+        else:
+            asset_url = f"{base_url}/assets/{username}/{cdn_name}/{filename}"
+        if api_key:
+            asset_url = f"{asset_url}?{urlencode({'apikey': api_key})}"
+        slides.append({"name": filename, "url": asset_url, "type": "video" if extension in video_extensions else "image"})
+
+    title = escape(f"Presentación · {cdn_name}")
+    slides_json = json.dumps(slides, ensure_ascii=False).replace("</", "<\\/")
+    return HTMLResponse(
+        content=f"""<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<style>
+:root {{ color-scheme: dark; }} * {{ box-sizing: border-box; }}
+html, body {{ width:100%; height:100%; margin:0; overflow:hidden; background:#000; }}
+body {{ color:#e5e7eb; font-family:system-ui,sans-serif; }}
+.slideshow {{ position:fixed; inset:0; width:100%; height:100%; padding:0; }} .stage {{ position:absolute; inset:0; width:100%; height:100%; min-height:0; display:grid; place-items:center; background:#000; border-radius:0; overflow:hidden; }}
+[hidden] {{ display:none !important; }}
+.stage > img, .stage > video {{ position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:cover; object-position:center center; }} .empty {{ padding:3rem; text-align:center; color:#9ca3af; }}
+.counter,.caption {{ display:none; }}
+</style></head>
+<body><main class="slideshow" aria-label="Presentación de imágenes y vídeos">
+<section class="stage"><div id="empty" class="empty" hidden>No hay imágenes ni vídeos en esta CDN.</div><img id="image" alt="" hidden><video id="video" playsinline preload="auto" muted hidden></video></section>
+<div id="counter" class="counter" aria-live="polite"></div><div id="caption" class="caption"></div></main>
+<script>
+const slides = {slides_json}; let current = 0; let timer = null;
+const image=document.getElementById('image'), video=document.getElementById('video'), empty=document.getElementById('empty'), counter=document.getElementById('counter'), caption=document.getElementById('caption');
+function moveNext() {{ if (slides.length) {{ current=(current+1)%slides.length; render(); }} }}
+function render() {{
+  clearTimeout(timer); video.pause(); video.removeAttribute('src'); video.load(); image.removeAttribute('src'); image.hidden=true; video.hidden=true;
+  if (!slides.length) {{ empty.hidden=false; counter.textContent='0 elementos'; caption.textContent=''; return; }}
+  empty.hidden=true; const item=slides[current]; counter.textContent=String(current+1)+' / '+String(slides.length); caption.textContent=item.name;
+  if (item.type === 'video') {{ video.hidden=false; video.src=item.url; video.onended=moveNext; video.play().catch(()=>{{ caption.textContent=item.name+' · pulsa la pantalla para reproducir'; }}); }}
+  else {{ image.hidden=false; image.src=item.url; timer=setTimeout(moveNext,5000); }}
+}}
+document.addEventListener('click',()=>{{ if (!video.hidden && video.paused) video.play(); }}); render();
+</script></body></html>""",
+        status_code=200,
+    )
+
+
 def _build_listing_response(request: Request, cdn_id: int, username: str, cdn_name: str, short_public: bool = False):
-    base_url = str(request.base_url).rstrip("/") + "/api"
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    scheme = forwarded_proto if forwarded_proto in {"http", "https"} else request.url.scheme
+    base_url = f"{scheme}://{request.url.netloc}/api"
     with db_cursor(dict_cursor=True) as (_, cur):
         cur.execute(
             "SELECT filename, checksum, original_width, original_height FROM cdn_files WHERE cdn_id = %s ORDER BY filename",
