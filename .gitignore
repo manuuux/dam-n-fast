@@ -14,3 +14,8 @@
 
 # Carpeta específica de assets (Ignora la carpeta y todo su contenido)
 app/assets/
+
+# Local credentials
+.env
+.env.*
+!.env.example

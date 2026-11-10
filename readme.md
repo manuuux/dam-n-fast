@@ -69,12 +69,10 @@ Deploy the entire MicroCDN infrastructure with a single command:
     cd dam-n-fast
 ```
 
-2. **Configure Admin Environment Variables:**
-Create a .env file in the root directory to set your initial administrator credentials:
-```
-    ADMIN_USER=admin
-    ADMIN_PASSWORD=admin123
-```
+2. **Configure credentials:**
+Copy `.env.example` to `.env` and fill in every value. Choose different, strong passwords for the administrator and PostgreSQL, and generate a persistent random value for `FLASK_SECRET_KEY`, for example with `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Do not commit or share `.env`.
+
+For existing installations, back up your current `.env` outside the repository before updating: this release removes the tracked copy. Restore your local `.env` after updating and add the new variables. Keep the existing PostgreSQL username (the previous default was `postgres`) and password in the new file. To rotate the database password, change it in PostgreSQL first (for example with the interactive `psql` command `\password`), then update `DB_PASSWORD` and recreate the services. Changing `.env` alone does not update an existing database volume. `ADMIN_PASSWORD` is used when the configured administrator does not exist; changing it does not update an existing password. Changing `ADMIN_USER` to a username that does not exist creates another administrator at startup. Keep `FLASK_SECRET_KEY` stable across restarts; changing it invalidates existing sessions.
 
 3. **Build and Run:**
 

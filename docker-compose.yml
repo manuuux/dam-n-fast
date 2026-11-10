@@ -11,10 +11,10 @@ services:
       - TZ=America/Santiago
       - DB_HOST=damnfast-db
       - DB_NAME=dashboard_db
-      - DB_USER=postgres
-      - DB_PASSWORD=secretpassword
-      - ADMIN_USER=${ADMIN_USER}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - DB_USER=${DB_USER:?Set DB_USER in .env}
+      - DB_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      - ADMIN_USER=${ADMIN_USER:?Set ADMIN_USER in .env}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
 
     networks:
       - cloudflare_net
@@ -35,13 +35,13 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_DB=dashboard_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=secretpassword
+      - POSTGRES_USER=${DB_USER:?Set DB_USER in .env}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env}
       - TZ=America/Santiago
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d dashboard_db"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -58,11 +58,11 @@ services:
     environment:
       - DB_HOST=damnfast-db
       - DB_NAME=dashboard_db
-      - DB_USER=postgres
-      - DB_PASSWORD=secretpassword
-      - ADMIN_USER=${ADMIN_USER}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - FLASK_SECRET_KEY=super-secret-key-13579
+      - DB_USER=${DB_USER:?Set DB_USER in .env}
+      - DB_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      - ADMIN_USER=${ADMIN_USER:?Set ADMIN_USER in .env}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:?Set FLASK_SECRET_KEY in .env}
       - TZ=America/Santiago
     depends_on:
       damnfast-db:

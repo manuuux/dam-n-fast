@@ -12,16 +12,23 @@ from psycopg2.extras import RealDictCursor
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
+def required_env(name: str) -> str:
+    value = os.environ.get(name)
+    if value is None or not value.strip():
+        raise RuntimeError(f"Environment variable {name} is required and cannot be empty")
+    return value
+
+
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-13579")
+app.secret_key = required_env("FLASK_SECRET_KEY")
 
 DB_HOST = os.environ.get("DB_HOST", "db-postgres")
 DB_NAME = os.environ.get("DB_NAME", "dashboard_db")
-DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "secretpassword")
+DB_USER = required_env("DB_USER")
+DB_PASSWORD = required_env("DB_PASSWORD")
 DB_PORT = os.environ.get("DB_PORT", "5432")
-ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+ADMIN_USER = required_env("ADMIN_USER")
+ADMIN_PASSWORD = required_env("ADMIN_PASSWORD")
 
 ASSETS_BASE_DIR = Path("/app/app/assets")
 
